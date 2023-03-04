@@ -10,7 +10,7 @@
 <section class="row" "justify-content-between">
 	<div class="col-md-4">
 
-		<form method="POST" asd-action="Create">
+		<form method="POST" asd-action="Create" enctype="multipart/form-data">
 			<div class="form-group">
 				<label class="text-muted" asp-for="Title"></label>
 				<input type="text" class="form-control" asp-for="Title" maxlength="250" />
@@ -44,7 +44,7 @@
 			</div>
 
 			<div class="custom-file">
-				<input type="file" class="custom-file-input" asp-for="Poster" accept=".png, .jpg" />
+				<input type="file" class="custom-file-input" asp-for="Poster"  />
 				<label class="custom-file-label" asp-for="Poster"></label>
 				<span asp-validation-for="Poster" class="text-danger"></span>
 			</div>
@@ -53,6 +53,8 @@
 				<i class="bi bi-check"></i>
 				Save
 			</button>
+
+			@*when end user clicks on cancel button asp-action lets the user to go back to index page*@
 			<a asp-action="Index" class="btn btn-outline-secondary mt-4">
 				<i class="bi bi-x"></i>
 				Cancel
