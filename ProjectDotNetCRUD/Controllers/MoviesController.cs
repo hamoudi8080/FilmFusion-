@@ -2,14 +2,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ProjectDotNetCRUD.Models;
 using ProjectDotNetCRUD.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Security.Policy;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace ProjectDotNetCRUD.Controllers
 {
@@ -84,8 +87,16 @@ namespace ProjectDotNetCRUD.Controllers
 
             }
 
+            //a new MemoryStream object called dataStream is created using the new keyword.
+            //This object will be used to temporarily hold the contents of a file that the user has uploaded. 
+           //read or write data in memory, and it's often used when you want to manipulate data in memory without writing it to disk
+
             using var dataStream = new MemoryStream();
+
+            //we get the content which is a file or img and deliver to the destination which is dataStream
             await poster.CopyToAsync(dataStream);
+
+
             var movie = new Movie
             {
                 Title = model.Title,
@@ -93,6 +104,8 @@ namespace ProjectDotNetCRUD.Controllers
                 Year = model.Year,
                 Rate = model.Rate,
                 Storeline = model.Storeline,
+                //The ToArray() method is a method provided by the MemoryStream class that returns the entire contents of the stream as an array of bytes.
+                //n this case,dataStream.ToArray() is returning an array of bytes containing the file data that was uploaded by the user
                 Poster = dataStream.ToArray()
 
             };
