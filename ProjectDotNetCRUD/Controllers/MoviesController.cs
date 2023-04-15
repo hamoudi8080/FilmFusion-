@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Policy;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static System.Net.WebRequestMethods;
 
 namespace ProjectDotNetCRUD.Controllers
@@ -23,8 +24,10 @@ namespace ProjectDotNetCRUD.Controllers
 
         private new List<string> _allowedExtenstions = new List<string> { ".jpg", ".png" };
 
+        private long _maxAllowedPosterSize = 1048576;
+
         public MoviesController(ApplicationDbContext context)
-        { 
+        {
             _context = context;
         }
 
@@ -32,17 +35,19 @@ namespace ProjectDotNetCRUD.Controllers
         {
             //MY Action is index i retrive all data from database and 
             var movies = await _context.Movies.ToListAsync();
-           // then it sends them to the view in shared.Index
+            // then it sends them to the view in shared.Index
             return View(movies);
         }
 
         public async Task<IActionResult> Create()
         {
+            //viewModel is a model that serving the view, so in order to display the data from data base to our end user,
+            //first we have populate the view model with the data and then we send our model to view.   
             var viewModel = new MovieFormViewModel
             {
                 Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync()
             };
-            return View(viewModel);
+            return View("MovieForm", viewModel);
         }
 
 
@@ -56,10 +61,10 @@ namespace ProjectDotNetCRUD.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(MovieFormViewModel model)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 model.Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync();
-                return View(model);
+                return View("MovieForm", model);
             }
 
             var files = Request.Form.Files;
@@ -76,20 +81,20 @@ namespace ProjectDotNetCRUD.Controllers
             {
                 model.Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync();
                 ModelState.AddModelError("Poster", "Only .PNG, .JPG images are allowed!");
-                return View( model);
+                return View("MovieForm", model);
             }
 
-            if(poster.Length > 1048576)
+            if (poster.Length > _maxAllowedPosterSize)
             {
                 model.Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync();
                 ModelState.AddModelError("Poster", "Poster cannot be more than 1 mb");
-                return View(model);
+                return View("MovieForm", model);
 
             }
 
             //a new MemoryStream object called dataStream is created using the new keyword.
             //This object will be used to temporarily hold the contents of a file that the user has uploaded. 
-           //read or write data in memory, and it's often used when you want to manipulate data in memory without writing it to disk
+            //read or write data in memory, and it's often used when you want to manipulate data in memory without writing it to disk
 
             using var dataStream = new MemoryStream();
 
@@ -115,6 +120,89 @@ namespace ProjectDotNetCRUD.Controllers
 
 
             return RedirectToAction(nameof(Index));
+        }
+
+
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+                BadRequest();
+
+            var movie = await _context.Movies.FindAsync(id);
+
+            if (movie == null)
+                NotFound();
+
+            var viewModel = new MovieFormViewModel
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                GenreId = movie.GenreId,
+                Year = movie.Year,
+                Rate = movie.Rate,
+                Storeline = movie.Storeline,
+                Poster = movie.Poster,
+
+                Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync()
+
+            };
+            return View("MovieForm", viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(MovieFormViewModel model)
+        {
+
+
+            if (!ModelState.IsValid)
+            {
+                model.Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync();
+                return View("MovieForm", model);
+            }
+            var movie = await _context.Movies.FindAsync(model.Id);
+
+            if (movie == null)
+                NotFound();
+
+            var files = Request.Form.Files;
+            if (files.Any())
+            {
+
+                var poster = files.FirstOrDefault();
+
+                using var dataStream = new MemoryStream();
+
+                await poster.CopyToAsync(dataStream);
+
+                model.Poster = dataStream.ToArray();
+                if (!_allowedExtenstions.Contains(Path.GetExtension(poster.FileName).ToLower()))
+                {
+                    model.Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync();
+                    ModelState.AddModelError("Poster", "Only .PNG, .JPG images are allowed!");
+                    return View("MovieForm", model);
+                }
+
+                if (poster.Length > _maxAllowedPosterSize)
+                {
+                    model.Genres = await _context.Genres.OrderBy(m => m.Name).ToListAsync();
+                    ModelState.AddModelError("Poster", "Poster cannot be more than 1 mb");
+                    return View("MovieForm", model);
+
+                }
+
+                movie.Poster = dataStream.ToArray();
+            }
+           
+              movie.Title = model.Title;
+              movie.GenreId = model.GenreId;
+              movie.Year = model.Year;
+              movie.Rate = model.Rate;
+              movie.Storeline = model.Storeline;
+            _context.SaveChanges();
+
+            return RedirectToAction(nameof(Index));
+
         }
     }
 }
