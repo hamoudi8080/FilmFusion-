@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NToastNotify;
 using ProjectDotNetCRUD.Models;
 using ProjectDotNetCRUD.ViewModels;
 using System;
@@ -21,14 +22,16 @@ namespace ProjectDotNetCRUD.Controllers
     {
 
         private readonly ApplicationDbContext _context;
+        private readonly IToastNotification _toastNotification;
 
         private new List<string> _allowedExtenstions = new List<string> { ".jpg", ".png" };
 
         private long _maxAllowedPosterSize = 1048576;
 
-        public MoviesController(ApplicationDbContext context)
+        public MoviesController(ApplicationDbContext context, IToastNotification toastNotification)
         {
             _context = context;
+            _toastNotification = toastNotification;
         }
 
         public async Task<IActionResult> Index()
@@ -118,7 +121,7 @@ namespace ProjectDotNetCRUD.Controllers
             _context.Movies.Add(movie);
             _context.SaveChanges();
 
-
+            _toastNotification.AddSuccessToastMessage("Movie created successfully");
             return RedirectToAction(nameof(Index));
         }
 
@@ -200,6 +203,8 @@ namespace ProjectDotNetCRUD.Controllers
               movie.Rate = model.Rate;
               movie.Storeline = model.Storeline;
             _context.SaveChanges();
+
+            _toastNotification.AddSuccessToastMessage("Movie updated successfully");
 
             return RedirectToAction(nameof(Index));
 
